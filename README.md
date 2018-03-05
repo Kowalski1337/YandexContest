@@ -1,2 +1,2 @@
-##### YandexContest
+#YandexContest
 
