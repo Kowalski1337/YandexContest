@@ -1,2 +1,2 @@
-<h1> YandexContest <\h1>
+<h1> YandexContest </h1>
 
