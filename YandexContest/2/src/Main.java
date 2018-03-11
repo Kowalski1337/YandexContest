@@ -1,32 +1,52 @@
 import java.io.PrintWriter;
+import java.sql.Time;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Scanner;
 
 public class Main {
 
-    static class Event {
-        int timeH;
-        int timeM;
+    static class EventTime {
+        int hours;
+        int minutes;
         int duration;
+
+        EventTime(int hours, int minutes, int duration) {
+            this.hours = hours;
+            this.minutes = minutes;
+            this.duration = duration;
+        }
+
+        int getTimeInMinutes() {
+            return hours * 60 + minutes;
+        }
+
+        boolean compareTo(EventTime eventTime) {
+            return this.getTimeInMinutes() >= eventTime.getTimeInMinutes() + eventTime.duration ||
+                    eventTime.getTimeInMinutes() >= this.getTimeInMinutes() + this.duration;
+        }
+
+    }
+
+    static class Event {
+        EventTime eventTime;
         ArrayList<String> partitions;
 
-        Event(int timeH, int timeM, int duration) {
-            this.duration = duration;
-            this.timeH = timeH;
-            this.timeM = timeM;
-            this.partitions = new ArrayList<>();
+        Event(EventTime eventTime, ArrayList<String> partitions) {
+            this.eventTime = eventTime;
+            this.partitions = partitions;
         }
 
-        public void addPartition(String partition) {
-            partitions.add(partition);
-        }
-
-        public void printEvent(PrintWriter writer) {
-            writer.format("%d:%d %d ", timeH, timeM, duration);
+        void printEvent(PrintWriter writer) {
+            writer.print(eventTime.hours < 10 ? "0" + eventTime.hours : eventTime.hours);
+            writer.print(':');
+            writer.print(eventTime.minutes < 10 ? "0" + eventTime.minutes : eventTime.minutes);
+            writer.print(" " + eventTime.duration + " ");
             for (String partition : partitions) {
                 writer.format("%s ", partition);
             }
+            writer.println();
         }
     }
 
@@ -41,10 +61,12 @@ public class Main {
 
         int n = in.nextInt();
 
-        out.close();
         in.nextLine();
         for (int i = 0; i < n; i++) {
             String[] s = in.nextLine().split(" ");
+            /*for (String s1 : s){
+                System.err.print(s1 + '!');
+            }*/
             if (s[0].equals("PRINT")) {
                 int day = Integer.parseInt(s[1]) - 1;
                 String name = s[2];
@@ -59,28 +81,52 @@ public class Main {
                 int timeH = Integer.parseInt(s[2].split(":")[0]);
                 int timeM = Integer.parseInt(s[2].split(":")[1]);
                 int duration = Integer.parseInt(s[3]);
+
+                ArrayList<String> partitions = new ArrayList<>();
+                partitions.addAll(Arrays.asList(s).subList(5, s.length));
+              //  System.out.print(partitions.size());
+
+                Event event = new Event(new EventTime(timeH, timeM, duration), partitions);
+
+                boolean needAdd = true;
+                ArrayList<String> why = new ArrayList<>();
                 if (hashMaps[day] == null) {
                     hashMaps[day] = new HashMap<>();
-                }
-                Event event = new Event(timeH, timeM, duration);
-                ArrayList<String> partitions = new ArrayList<>();
-                for (int j = 5; j < s.length; j++) {
-                    event.addPartition(s[j]);
-                    partitions.add(s[j]);
-                }
-
-
-                partitions.forEach(partition -> {
-                    if (hashMaps[day].containsKey(partition)) {
-                        hashMaps[day].get(partition).add(event);
-                    } else {
-                        ArrayList<Event> events = new ArrayList<>();
-                        events.add(event);
-                        hashMaps[day].put(partition, events);
+                } else {
+                    for (String partition : partitions) {
+                        if (hashMaps[day].containsKey(partition)) {
+                            for (Event event1 : hashMaps[day].get(partition)) {
+                                if (!event.eventTime.compareTo(event1.eventTime)) {
+                                    needAdd = false;
+                                    why.add(partition);
+                                    break;
+                                }
+                            }
+                        }
                     }
-                });
+                }
+
+                if (needAdd) {
+                    out.println("OK");
+                    for (String partition : partitions) {
+                        if (hashMaps[day].containsKey(partition)) {
+                            hashMaps[day].get(partition).add(event);
+                        } else {
+                            ArrayList<Event> events = new ArrayList<>();
+                            events.add(event);
+                            hashMaps[day].put(partition, events);
+                        }
+                    }
+                } else {
+                    out.println("FAIL");
+                    for (String partition : why) {
+                        out.print(partition + " ");
+                    }
+                    out.println();
+                }
 
             }
         }
+        out.close();
     }
 }

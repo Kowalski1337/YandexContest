@@ -7,5 +7,7 @@ public class Test {
             }
             System.err.print(i);
         }
+
+        System.err.print(Integer.MAX_VALUE);
     }
 }
